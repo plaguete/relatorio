@@ -1,0 +1,13 @@
+{
+  "name": "relatorio-abnt",
+  "version": "1.0.0",
+  "description": "Gerador de Relatórios ABNT com Google Drive",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000"
+  },
+  "keywords": ["relatorio", "abnt", "pdf", "docx", "google-drive"],
+  "author": "Seu Nome",
+  "license": "MIT"
+}

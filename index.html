@@ -120,12 +120,13 @@
                 <button type="button" id="gerarPdfBtn">Gerar e Enviar PDF</button>
                 <button type="button" id="gerarDocBtn">Gerar e Enviar DOC</button>
                 <button type="button" id="gerarAmbosBtn">Gerar Ambos (PDF + DOC)</button>
+                <button type="button" id="reauthBtn" style="background-color: #ff9800;">Reautenticar</button>
             </div>
         </form>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+    <script src="https://unpkg.com/docx@7.8.2/build/index.js"></script>
     <script async defer src="https://accounts.google.com/gsi/client"></script>
     <script async defer src="https://apis.google.com/js/api.js"></script>
     <script>
@@ -163,11 +164,26 @@
 
         // Solicitar token de acesso
         function requestAccessToken() {
+            console.log('Solicitando token de acesso...');
             if (accessToken === null) {
+                console.log('Token não existe, solicitando consentimento...');
                 tokenClient.requestAccessToken({prompt: 'consent'});
             } else {
+                console.log('Token existe, renovando...');
                 tokenClient.requestAccessToken({prompt: ''});
             }
+        }
+
+        // Verificar se está autenticado
+        function isAuthenticated() {
+            return accessToken !== null;
+        }
+
+        // Forçar nova autenticação
+        function forceReauth() {
+            accessToken = null;
+            console.log('Forçando reautenticação...');
+            requestAccessToken();
         }
 
         // Esperar que GSI esteja carregado
@@ -178,13 +194,19 @@
             
             // Verificar se bibliotecas carregaram
             setTimeout(() => {
+                console.log('Verificando bibliotecas...');
+                console.log('jsPDF carregado:', !!window.jspdf);
+                console.log('DOCX carregado:', !!window.docx);
+                
                 if (!window.docx) {
                     console.warn('Biblioteca DOCX não carregou. Tente recarregar a página.');
+                    alert('Biblioteca DOCX não carregou. Tente recarregar a página (F5).');
                 }
                 if (!window.jspdf) {
                     console.warn('Biblioteca jsPDF não carregou. Tente recarregar a página.');
+                    alert('Biblioteca jsPDF não carregou. Tente recarregar a página (F5).');
                 }
-            }, 2000);
+            }, 3000);
         });
 
 
@@ -429,25 +451,30 @@
 
         // Enviar para Google Drive
         async function enviarParaDrive(arquivoBlob, nomeArquivo) {
-            if (accessToken === null) {
-                console.log('Solicitando acesso...');
+            console.log('Verificando autenticação...');
+            
+            if (!isAuthenticated()) {
+                console.log('Não autenticado, solicitando acesso...');
                 requestAccessToken();
                 
-                // Aguardar até 3 segundos pelo token
+                // Aguardar até 5 segundos pelo token
                 let attempts = 0;
                 const waitForToken = setInterval(() => {
                     attempts++;
-                    if (accessToken !== null) {
+                    console.log(`Tentativa ${attempts}/50 de obter token...`);
+                    if (isAuthenticated()) {
                         clearInterval(waitForToken);
+                        console.log('Token obtido, continuando upload...');
                         enviarParaDrive(arquivoBlob, nomeArquivo);
-                    } else if (attempts > 30) {
+                    } else if (attempts > 50) {
                         clearInterval(waitForToken);
-                        alert('Timeout na autenticação. Tente novamente.');
+                        alert('Timeout na autenticação. Clique em "Reautenticar" e tente novamente.');
                     }
                 }, 100);
                 return;
             }
 
+            console.log('Autenticado, fazendo upload...');
             try {
                 const fileMetadata = {
                     name: nomeArquivo,
@@ -471,11 +498,12 @@
                     return true;
                 } else {
                     const errorText = await response.text();
-                    console.error('Erro:', errorText);
+                    console.error('Erro no upload:', errorText);
+                    alert('Erro ao enviar ' + nomeArquivo + ': ' + response.status);
                     return false;
                 }
             } catch (error) {
-                console.error(error);
+                console.error('Erro na autenticação ou upload:', error);
                 alert('Erro na autenticação ou upload: ' + error.message);
                 return false;
             }
@@ -546,6 +574,10 @@
             } catch (error) {
                 alert('Erro ao gerar arquivos: ' + error.message);
             }
+        });
+
+        document.getElementById('reauthBtn').addEventListener('click', () => {
+            forceReauth();
         });
     </script>
 </body>
