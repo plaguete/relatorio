@@ -125,7 +125,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
     <script async defer src="https://accounts.google.com/gsi/client"></script>
     <script async defer src="https://apis.google.com/js/api.js"></script>
     <script>
@@ -175,6 +175,16 @@
             if (typeof google !== 'undefined') {
                 initializeGSI();
             }
+            
+            // Verificar se bibliotecas carregaram
+            setTimeout(() => {
+                if (!window.docx) {
+                    console.warn('Biblioteca DOCX não carregou. Tente recarregar a página.');
+                }
+                if (!window.jspdf) {
+                    console.warn('Biblioteca jsPDF não carregou. Tente recarregar a página.');
+                }
+            }, 2000);
         });
 
 
@@ -303,7 +313,7 @@
 
         // Gerar documento DOCX com formatação ABNT
         async function gerarDOCX() {
-            const { Document, Packer, Paragraph, TextRun, PageBreak, convertInchesToTwip, AlignmentType } = window.docx;
+            const docx = window.docx;
 
             const titulo = document.getElementById('titulo').value;
             const autor = document.getElementById('autor').value;
@@ -321,33 +331,33 @@
 
             // Capa
             children.push(
-                new Paragraph({
+                new docx.Paragraph({
                     text: titulo,
-                    alignment: AlignmentType.CENTER,
+                    alignment: docx.AlignmentType.CENTER,
                     spacing: { line: 360, lineRule: 'auto', after: 240 },
-                    runs: [new TextRun({ size: 24, bold: true, font: 'Times New Roman' })]
+                    runs: [new docx.TextRun({ size: 24, bold: true, font: 'Times New Roman' })]
                 }),
-                new Paragraph({
+                new docx.Paragraph({
                     text: `Autor: ${autor}`,
-                    alignment: AlignmentType.CENTER,
+                    alignment: docx.AlignmentType.CENTER,
                     spacing: { line: 360, lineRule: 'auto', after: 120 },
-                    runs: [new TextRun({ size: 24, font: 'Times New Roman' })]
+                    runs: [new docx.TextRun({ size: 24, font: 'Times New Roman' })]
                 }),
-                new Paragraph({
+                new docx.Paragraph({
                     text: `Data: ${data}`,
-                    alignment: AlignmentType.CENTER,
+                    alignment: docx.AlignmentType.CENTER,
                     spacing: { line: 360, lineRule: 'auto', after: 120 },
-                    runs: [new TextRun({ size: 24, font: 'Times New Roman' })]
+                    runs: [new docx.TextRun({ size: 24, font: 'Times New Roman' })]
                 })
             );
 
             if (instituicao) {
                 children.push(
-                    new Paragraph({
+                    new docx.Paragraph({
                         text: `Instituição: ${instituicao}`,
-                        alignment: AlignmentType.CENTER,
+                        alignment: docx.AlignmentType.CENTER,
                         spacing: { line: 360, lineRule: 'auto', after: 120 },
-                        runs: [new TextRun({ size: 24, font: 'Times New Roman' })]
+                        runs: [new docx.TextRun({ size: 24, font: 'Times New Roman' })]
                     })
                 );
             }
@@ -368,42 +378,42 @@
                 
                 // Quebra de página antes de cada título principal (exceto o primeiro)
                 if (i > 0) {
-                    children.push(new PageBreak());
+                    children.push(new docx.PageBreak());
                 }
 
                 // Título numerado em negrito, tamanho 12, esquerda
                 children.push(
-                    new Paragraph({
+                    new docx.Paragraph({
                         text: `${secao.num} ${secao.titulo}`,
-                        alignment: AlignmentType.LEFT,
+                        alignment: docx.AlignmentType.LEFT,
                         spacing: { line: 360, lineRule: 'auto', before: 0, after: 120 },
                         indentation: { firstLine: 0 },
-                        runs: [new TextRun({ size: 24, bold: true, font: 'Times New Roman' })]
+                        runs: [new docx.TextRun({ size: 24, bold: true, font: 'Times New Roman' })]
                     })
                 );
 
                 // Conteúdo com recuo de 1,25cm, justificado, espaçamento 1.5
                 children.push(
-                    new Paragraph({
+                    new docx.Paragraph({
                         text: secao.conteudo,
-                        alignment: AlignmentType.JUSTIFIED,
+                        alignment: docx.AlignmentType.JUSTIFIED,
                         spacing: { line: 360, lineRule: 'auto' },
                         indentation: {
-                            firstLine: convertInchesToTwip(0.5), // 1,25cm recuo primeira linha
+                            firstLine: docx.convertInchesToTwip(0.5), // 1,25cm recuo primeira linha
                             left: 0,
                             right: 0
                         },
-                        runs: [new TextRun({ size: 24, font: 'Times New Roman' })]
+                        runs: [new docx.TextRun({ size: 24, font: 'Times New Roman' })]
                     })
                 );
             }
 
-            const doc = new Document({
+            const doc = new docx.Document({
                 margins: {
-                    top: convertInchesToTwip(1.18), // 3cm
-                    bottom: convertInchesToTwip(0.79), // 2cm
-                    left: convertInchesToTwip(1.18), // 3cm
-                    right: convertInchesToTwip(0.79) // 2cm
+                    top: docx.convertInchesToTwip(1.18), // 3cm
+                    bottom: docx.convertInchesToTwip(0.79), // 2cm
+                    left: docx.convertInchesToTwip(1.18), // 3cm
+                    right: docx.convertInchesToTwip(0.79) // 2cm
                 },
                 sections: [{
                     children: children
@@ -411,7 +421,7 @@
             });
 
             return new Promise((resolve) => {
-                Packer.toBlob(doc).then((blob) => {
+                docx.Packer.toBlob(doc).then((blob) => {
                     resolve(blob);
                 });
             });
@@ -489,6 +499,10 @@
         });
 
         document.getElementById('gerarDocBtn').addEventListener('click', async () => {
+            if (!window.docx) {
+                alert('Biblioteca DOCX ainda não carregou. Tente novamente em alguns segundos.');
+                return;
+            }
             try {
                 const docBlob = await gerarDOCX();
                 const titulo = document.getElementById('titulo').value;
@@ -505,6 +519,10 @@
         });
 
         document.getElementById('gerarAmbosBtn').addEventListener('click', async () => {
+            if (!window.docx) {
+                alert('Biblioteca DOCX ainda não carregou. Tente novamente em alguns segundos.');
+                return;
+            }
             try {
                 const pdfBlob = await gerarPDF();
                 const docBlob = await gerarDOCX();
