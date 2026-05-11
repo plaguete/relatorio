@@ -318,9 +318,6 @@
             const contentWidth = pageWidth - marginLeft - marginRight;
             const firstLineIndent = 35.5; // 1,25cm em pontos
 
-            doc.setFont('Times', 'normal');
-            doc.setFontSize(12);
-
             const titulo = document.getElementById('titulo').value;
             const autor = document.getElementById('autor').value;
             const data = document.getElementById('data').value;
@@ -333,19 +330,17 @@
             const observacoes = document.getElementById('observacoes').value;
             const bibliografia = document.getElementById('bibliografia').value;
 
-            // Função para adicionar texto justificado com recuo de 1,25cm
             function addJustifiedParagraph(text, startY) {
-                const words = text.split(' ');
+                const words = text.trim().split(/\s+/);
                 let currentLine = '';
                 let y = startY;
                 let isFirstLine = true;
                 const lines = [];
-                
+
                 for (let word of words) {
                     const testLine = currentLine + (currentLine ? ' ' : '') + word;
                     const testWidth = doc.getTextWidth(testLine);
-                    
-                    if (testWidth > contentWidth - firstLineIndent && currentLine) {
+                    if (testWidth > contentWidth - (isFirstLine ? firstLineIndent : 0) && currentLine) {
                         lines.push({ text: currentLine, isFirst: isFirstLine });
                         currentLine = word;
                         isFirstLine = false;
@@ -358,45 +353,40 @@
                 }
 
                 for (let line of lines) {
-                    let xPos = marginLeft;
-                    if (line.isFirst) {
-                        xPos += firstLineIndent;
-                    }
+                    const xPos = marginLeft + (line.isFirst ? firstLineIndent : 0);
                     doc.text(line.text, xPos, y, { align: 'justify' });
-                    y += 8.5; // Espaçamento 1.5
+                    y += 8.5;
                 }
                 return y + 5;
             }
 
-            // Capa
-            const logoFile = document.getElementById('logo').files[0];
-            if (logoFile) {
+            // Página de capa
+            doc.setFont('Times', 'bold');
+            doc.setFontSize(12);
+            if (instituicao) {
+                doc.text(instituicao.toUpperCase(), pageWidth / 2, marginTop, { align: 'center' });
+            }
+            doc.setFontSize(24);
+            doc.setFont('Times', 'bold');
+            doc.text(titulo.toUpperCase(), pageWidth / 2, marginTop + 80, { align: 'center' });
+            doc.setFontSize(12);
+            doc.setFont('Times', 'normal');
+            doc.text(`Autor: ${autor}`, pageWidth / 2, marginTop + 120, { align: 'center' });
+            doc.text(`Data: ${data}`, pageWidth / 2, marginTop + 140, { align: 'center' });
+            if (instituicao) {
+                doc.text(`Instituição: ${instituicao}`, pageWidth / 2, marginTop + 160, { align: 'center' });
+            }
+
+            if (document.getElementById('logo').files[0]) {
+                const logoFile = document.getElementById('logo').files[0];
                 const logoDataUrl = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target.result);
                     reader.readAsDataURL(logoFile);
                 });
-                doc.addImage(logoDataUrl, 'PNG', marginLeft, marginTop, 30, 30);
+                doc.addImage(logoDataUrl, 'PNG', pageWidth - marginRight - 40, marginTop, 40, 40);
             }
 
-            let capaY = marginTop + 50;
-            doc.setFontSize(16);
-            doc.setFont('Times', 'bold');
-            doc.text(titulo, pageWidth / 2, capaY, { align: 'center' });
-            
-            capaY += 30;
-            doc.setFontSize(12);
-            doc.setFont('Times', 'normal');
-            doc.text(`Autor: ${autor}`, pageWidth / 2, capaY, { align: 'center' });
-            capaY += 20;
-            doc.text(`Data: ${data}`, pageWidth / 2, capaY, { align: 'center' });
-            
-            if (instituicao) {
-                capaY += 20;
-                doc.text(`Instituição: ${instituicao}`, pageWidth / 2, capaY, { align: 'center' });
-            }
-
-            // Seções com numeração hierárquica
             const secoes = [
                 { num: '1', titulo: 'Introdução', conteudo: introducao },
                 { num: '2', titulo: 'Objetivos', conteudo: objetivos },
@@ -410,17 +400,16 @@
             for (let i = 0; i < secoes.length; i++) {
                 doc.addPage();
                 let y = marginTop;
-                
-                // Título numerado em negrito
                 doc.setFontSize(12);
                 doc.setFont('Times', 'bold');
                 doc.text(`${secoes[i].num} ${secoes[i].titulo}`, marginLeft, y);
-                
-                y += 15;
+                y += 16;
                 doc.setFont('Times', 'normal');
-                
-                // Conteúdo com recuo
-                y = addJustifiedParagraph(secoes[i].conteudo, y);
+                if (!secoes[i].conteudo.trim()) {
+                    doc.text(' ', marginLeft + firstLineIndent, y);
+                } else {
+                    y = addJustifiedParagraph(secoes[i].conteudo, y);
+                }
             }
 
             return doc.output('blob');
@@ -477,6 +466,9 @@
                 );
             }
 
+            // Quebra de página após a capa
+            children.push(new docx.PageBreak());
+
             // Seções com numeração hierárquica
             const secoes = [
                 { num: '1', titulo: 'Introdução', conteudo: introducao },
@@ -502,7 +494,6 @@
                         text: `${secao.num} ${secao.titulo}`,
                         alignment: docx.AlignmentType.LEFT,
                         spacing: { line: 360, lineRule: 'auto', before: 0, after: 120 },
-                        indentation: { firstLine: 0 },
                         runs: [new docx.TextRun({ size: 24, bold: true, font: 'Times New Roman' })]
                     })
                 );
@@ -510,9 +501,9 @@
                 // Conteúdo com recuo de 1,25cm, justificado, espaçamento 1.5
                 children.push(
                     new docx.Paragraph({
-                        text: secao.conteudo,
+                        text: secao.conteudo || ' ',
                         alignment: docx.AlignmentType.JUSTIFIED,
-                        spacing: { line: 360, lineRule: 'auto' },
+                        spacing: { line: 360, lineRule: 'auto', after: 240 },
                         indentation: {
                             firstLine: docx.convertInchesToTwip(0.5), // 1,25cm recuo primeira linha
                             left: 0,
@@ -521,6 +512,9 @@
                         runs: [new docx.TextRun({ size: 24, font: 'Times New Roman' })]
                     })
                 );
+                if (i < secoes.length - 1) {
+                    children.push(new docx.PageBreak());
+                }
             }
 
             const doc = new docx.Document({
