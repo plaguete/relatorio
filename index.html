@@ -306,22 +306,22 @@
         // Gerar PDF com formatação ABNT
         async function gerarPDF() {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+            const doc = new jsPDF({ unit: 'pt', format: 'a4' });
 
             // Configurações ABNT: Margens 3cm superior/esquerda, 2cm inferior/direita
-            const marginLeft = 85; // 3cm
-            const marginRight = 57; // 2cm
+            const marginLeft = 85; // 3cm em pontos
+            const marginRight = 57; // 2cm em pontos
             const marginTop = 85;
-            const marginBottom = 57; // 2cm
-            const pageWidth = 210 * 2.83465;
-            const pageHeight = 297 * 2.83465;
+            const marginBottom = 57; // 2cm em pontos
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
             const contentWidth = pageWidth - marginLeft - marginRight;
             const firstLineIndent = 35.5; // 1,25cm em pontos
 
-            const titulo = document.getElementById('titulo').value;
-            const autor = document.getElementById('autor').value;
-            const data = document.getElementById('data').value;
-            const instituicao = document.getElementById('instituicao').value;
+            const titulo = document.getElementById('titulo').value.trim();
+            const autor = document.getElementById('autor').value.trim();
+            const data = document.getElementById('data').value.trim();
+            const instituicao = document.getElementById('instituicao').value.trim();
             const introducao = document.getElementById('introducao').value;
             const objetivos = document.getElementById('objetivos').value;
             const materiais = document.getElementById('materiais').value;
