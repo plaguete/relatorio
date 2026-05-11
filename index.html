@@ -306,22 +306,22 @@
         // Gerar PDF com formatação ABNT
         async function gerarPDF() {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+            const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
             // Configurações ABNT: Margens 3cm superior/esquerda, 2cm inferior/direita
-            const marginLeft = 85; // 3cm em pontos
-            const marginRight = 57; // 2cm em pontos
-            const marginTop = 85;
-            const marginBottom = 57; // 2cm em pontos
+            const marginLeft = 30; // 3cm em mm
+            const marginRight = 20; // 2cm em mm
+            const marginTop = 30;
+            const marginBottom = 20; // 2cm em mm
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const contentWidth = pageWidth - marginLeft - marginRight;
-            const firstLineIndent = 35.5; // 1,25cm em pontos
+            const firstLineIndent = 12.5; // 1,25cm em mm
 
-            const titulo = document.getElementById('titulo').value.trim();
-            const autor = document.getElementById('autor').value.trim();
-            const data = document.getElementById('data').value.trim();
-            const instituicao = document.getElementById('instituicao').value.trim();
+            const titulo = document.getElementById('titulo').value.trim() || 'RELATÓRIO DIÁRIO';
+            const autor = document.getElementById('autor').value.trim() || 'Não informado';
+            const data = document.getElementById('data').value.trim() || 'Não informado';
+            const instituicao = document.getElementById('instituicao').value.trim() || 'Instituição não informada';
             const introducao = document.getElementById('introducao').value;
             const objetivos = document.getElementById('objetivos').value;
             const materiais = document.getElementById('materiais').value;
@@ -363,19 +363,17 @@
             // Página de capa
             doc.setFont('Times', 'bold');
             doc.setFontSize(12);
-            if (instituicao) {
-                doc.text(instituicao.toUpperCase(), pageWidth / 2, marginTop, { align: 'center' });
-            }
-            doc.setFontSize(24);
+            doc.text('RELATÓRIO DIÁRIO', pageWidth / 2, marginTop + 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text(instituicao.toUpperCase(), pageWidth / 2, marginTop + 35, { align: 'center' });
+            doc.setFontSize(28);
             doc.setFont('Times', 'bold');
-            doc.text(titulo.toUpperCase(), pageWidth / 2, marginTop + 80, { align: 'center' });
+            doc.text(titulo.toUpperCase(), pageWidth / 2, pageHeight / 2 - 20, { align: 'center' });
             doc.setFontSize(12);
             doc.setFont('Times', 'normal');
-            doc.text(`Autor: ${autor}`, pageWidth / 2, marginTop + 120, { align: 'center' });
-            doc.text(`Data: ${data}`, pageWidth / 2, marginTop + 140, { align: 'center' });
-            if (instituicao) {
-                doc.text(`Instituição: ${instituicao}`, pageWidth / 2, marginTop + 160, { align: 'center' });
-            }
+            doc.text(`Autor: ${autor}`, pageWidth / 2, pageHeight / 2 + 20, { align: 'center' });
+            doc.text(`Data: ${data}`, pageWidth / 2, pageHeight / 2 + 34, { align: 'center' });
+            doc.text(`Instituição: ${instituicao}`, pageWidth / 2, pageHeight / 2 + 48, { align: 'center' });
 
             if (document.getElementById('logo').files[0]) {
                 const logoFile = document.getElementById('logo').files[0];
@@ -384,7 +382,7 @@
                     reader.onload = (e) => resolve(e.target.result);
                     reader.readAsDataURL(logoFile);
                 });
-                doc.addImage(logoDataUrl, 'PNG', pageWidth - marginRight - 40, marginTop, 40, 40);
+                doc.addImage(logoDataUrl, 'PNG', pageWidth - marginRight - 45, marginTop, 40, 40);
             }
 
             const secoes = [
@@ -398,6 +396,7 @@
             ];
 
             for (let i = 0; i < secoes.length; i++) {
+                if (!secoes[i].conteudo.trim()) continue;
                 doc.addPage();
                 let y = marginTop;
                 doc.setFontSize(12);
@@ -405,11 +404,7 @@
                 doc.text(`${secoes[i].num} ${secoes[i].titulo}`, marginLeft, y);
                 y += 16;
                 doc.setFont('Times', 'normal');
-                if (!secoes[i].conteudo.trim()) {
-                    doc.text(' ', marginLeft + firstLineIndent, y);
-                } else {
-                    y = addJustifiedParagraph(secoes[i].conteudo, y);
-                }
+                y = addJustifiedParagraph(secoes[i].conteudo, y);
             }
 
             return doc.output('blob');
